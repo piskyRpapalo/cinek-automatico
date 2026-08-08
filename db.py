@@ -115,3 +115,49 @@ def get_latest_job() -> Optional[dict]:
     row = c.execute("SELECT * FROM cinek_jobs ORDER BY id DESC LIMIT 1").fetchone()
     c.close()
     return dict(row) if row else None
+
+# === HERBIER BOTÁNICO (FASE 2.5) ===
+def init_herbier_schema() -> None:
+    """Inicializa la tabla herbier_diagnosticos si no existe"""
+    c = conn()
+    c.execute("""CREATE TABLE IF NOT EXISTS herbier_diagnosticos(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        foto_path TEXT NOT NULL,           -- Ruta en ~/p0x-soberano/cinek_outputs/herbier/
+        foto_hash TEXT,                    -- SHA-256 de la foto (futuro)
+        especie_detectada TEXT,            -- 'Ficus lyrata', 'Monstera deliciosa', etc.
+        diagnostico TEXT,                  -- Texto libre del Jetson (LLaVA)
+        estado_salud TEXT CHECK(estado_salud IN ('sano', 'atencion', 'critico', 'desconocido')),
+        recomendacion TEXT,                -- Consejo de cuidado
+        confianza REAL,                    -- 0.0 a 1.0 (score del modelo)
+        jetson_latency_ms INTEGER,         -- Tiempo de inferencia en Jetson
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );""")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_herbier_created ON herbier_diagnosticos(created_at DESC);")
+    c.commit()
+    c.close()
+
+def create_diagnostico(foto_path: str, especie: str, diagnostico: str, 
+                       estado_salud: str, recomendacion: str, 
+                       confianza: float = 0.0, jetson_latency_ms: int = 0) -> int:
+    """Crea un nuevo diagnóstico botánico"""
+    init_herbier_schema()
+    c = conn()
+    cur = c.execute("""INSERT INTO herbier_diagnosticos 
+                       (foto_path, especie_detectada, diagnostico, estado_salud, 
+                        recomendacion, confianza, jetson_latency_ms) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                    (foto_path, especie, diagnostico, estado_salud, 
+                     recomendacion, confianza, jetson_latency_ms))
+    c.commit()
+    diag_id = cur.lastrowid
+    c.close()
+    return diag_id
+
+def get_ultimos_diagnosticos(limit: int = 10) -> list:
+    """Retorna los N diagnósticos más recientes"""
+    init_herbier_schema()
+    c = conn()
+    rows = c.execute("""SELECT * FROM herbier_diagnosticos 
+                        ORDER BY created_at DESC LIMIT ?""", (limit,)).fetchall()
+    c.close()
+    return [dict(r) for r in rows]
