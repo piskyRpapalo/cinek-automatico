@@ -1,0 +1,59 @@
+{
+  "3": {
+    "class_type": "SVD_img2vid_Conditioning",
+    "inputs": {
+      "augmentation_level": 0.0,
+      "fps": 6,
+      "height": 576,
+      "image": ["10", 0],
+      "motion_bucket_id": 127,
+      "video_frames": 14,
+      "width": 1024
+    }
+  },
+  "4": {
+    "class_type": "ImageOnlyCheckpointLoader",
+    "inputs": {
+      "ckpt_name": "svd_xt_1_1.safetensors"
+    }
+  },
+  "5": {
+    "class_type": "KSampler",
+    "inputs": {
+      "cfg": 2.5,
+      "denoise": 1.0,
+      "latent_image": ["3", 0],
+      "model": ["4", 0],
+      "negative": ["3", 1],
+      "positive": ["3", 0],
+      "sampler_name": "euler",
+      "scheduler": "karras",
+      "steps": 20
+    }
+  },
+  "6": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["5", 0],
+      "vae": ["4", 2]
+    }
+  },
+  "7": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "crf": 19,
+      "format": "video/h264-mp4",
+      "frame_rate": 6,
+      "images": ["6", 0],
+      "loop_count": 0,
+      "pingpong": false,
+      "save_output": true
+    }
+  },
+  "10": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "__IMAGE_FILENAME__"
+    }
+  }
+}
