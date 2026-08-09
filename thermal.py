@@ -3,12 +3,23 @@ FASE 3: Gate térmico k10temp (Beelink)
 Doctrina: IronClaw (propone/señaliza, nunca mata) · Honestidad (NO_DATA > dato falso)
 Histéresis: >=85 OVERHEAT · >80 FRENO proporcional · <=75 libera freno
 """
-import time, json
+import time, json, glob
 from pathlib import Path
 import config as C
 import db
 
-SENSOR_PATH = "/sys/class/hwmon/hwmon3/temp1_input"
+def encontrar_sensor_k10temp() -> Optional[str]:
+    """Descubre el path de k10temp dinámicamente. Nunca hardcodea índice."""
+    for name_path in glob.glob("/sys/class/hwmon/hwmon*/name"):
+        try:
+            with open(name_path, "r") as f:
+                if f.read().strip() == "k10temp":
+                    return name_path.replace("/name", "/temp1_input")
+        except OSError:
+            continue
+    return None  # NO_DATA: el gate no procede
+
+SENSOR_PATH = encontrar_sensor_k10temp()
 LOG_PATH = Path.home() / "p0x-soberano" / "logs" / "thermal.jsonl"
 
 class GateTermico:
@@ -18,6 +29,8 @@ class GateTermico:
         self.freno_activo = False
 
     def leer(self):
+        if self.sensor_path is None:
+            return None  # NO_DATA bloqueante
         try:
             with open(self.sensor_path, "rb") as f:
                 n = f.readinto(self.buf)
