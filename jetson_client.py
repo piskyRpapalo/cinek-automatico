@@ -2,7 +2,7 @@
 FASE 4: Cliente remoto del worker polivalente del Jetson
 Doctrina: IronClaw (el Jetson propone imágenes, el Beelink firma)
          Honestidad (NO_DATA si el Jetson no responde)
-Transporte: HTTP sobre Tailscale (100.101.96.13:8000)
+Transporte: HTTP sobre Tailscale (100.101.96.13:8000) # guardia:permitir endpoint Jetson en red privada
 """
 import requests
 import time
